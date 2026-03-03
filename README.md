@@ -4,7 +4,7 @@ Customized Claude Code Skill
 
 
 
-Extracting the contents that you want to organize from your book:
+Extracting the chapter contents that you want to organize from your book:
 ```
-/extract-chapter <book_name> <chapter_name> <output_filename>.md
+/extract-chapter <book_name> <chapter_num> <output_filename>.md
 ```
