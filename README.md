@@ -1,5 +1,5 @@
 # oh-my-claude-skills
-Customized Claude Code Skill
+Customized Claude Code Skills
 
 
 
