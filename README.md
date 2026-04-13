@@ -37,3 +37,9 @@ Generating a project overview from both paper and project code.
 ```
 /project-to-note create a project overview based on @new_paper.pdf and the current codebase
 ```
+
+Generating an interactive code review. 
+
+```
+/gen-codeflow @PATH/TO/CODE
+```
