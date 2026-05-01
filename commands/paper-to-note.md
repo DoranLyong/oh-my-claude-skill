@@ -17,6 +17,12 @@ understand the paper deeply, not just skim the abstract.
 **Typical output**: 15–25 `##` sections, 800–1200 lines of Markdown.
 The exact count depends on how many distinct concepts the paper introduces.
 
+**Input**: either a pre-extracted Markdown file or a raw PDF. When the input is
+a PDF, **Phase 0** (see §13) runs a MinerU + PyMuPDF extraction pipeline and
+writes a permanent `<paper-slug>.md` archive (alongside `figs/<paper-slug>/`).
+That archive — not the PDF — becomes the source for Phases 1–6. LLMs parse
+Markdown far more reliably than PDF, so the archive is checked in and reused.
+
 ---
 
 ## 2. Document Skeleton
@@ -38,14 +44,14 @@ Each concept is broken down into four facets:
 
 ---
 
-## 0. The Big Picture              ← ASCII art: paper's core story arc
+## 0. The Big Picture              ← Mermaid diagram: paper's core story arc
 
 ## 1–K. {Concept Sections}        ← 4-facet breakdown for each concept
 
 ## K+1. {Prior Art Comparison}     ← what existed, limitations, what this paper changes
 ## K+2. {Quick Reference Card}     ← insights/contributions summary table
 ## K+3. {Open Questions}           ← future work identified by the paper
-## K+4. {Concept Dependency Graph} ← ASCII art: how all concepts connect
+## K+4. {Concept Dependency Graph} ← Mermaid diagram: how all concepts connect
 ## K+5. {Key Equations}            ← summary table of all equations
 ## K+6. {Reference Map}            ← citations grouped by topic
 ```
@@ -140,7 +146,7 @@ Example from ViT³ note — under §5.1 Inner Loss:
 Follow the paper's **logical dependency chain**, not the section numbers:
 
 ```
- 1. Big Picture (§0)            — ASCII art showing the paper's narrative arc
+ 1. Big Picture (§0)            — Mermaid diagram showing the paper's narrative arc
  2. Foundation concepts         — what the reader must know first
  3. Core paradigm               — the paper's main contribution
  4. Inner/Outer structure       — if the paper has nested loops or levels
@@ -154,7 +160,7 @@ Follow the paper's **logical dependency chain**, not the section numbers:
 12. Prior Art comparison        — what existed before, limitations, what changed
 13. Quick Reference Card        — insights summary table
 14. Open Questions              — future work
-15. Concept Dependency Graph    — ASCII art of all connections
+15. Concept Dependency Graph    — Mermaid diagram of all connections
 16. Key Equations               — summary table
 17. Reference Map               — citations by topic
 ```
@@ -181,7 +187,7 @@ Some sections follow different formats. Recognize and apply these:
 
 **a) Architecture Flow Section** (e.g., "The TTT Block — Putting It All Together")
 - Definition: what the block does, inputs/outputs
-- ASCII architecture diagram showing data flow with branches
+- Architecture diagram (Mermaid `flowchart` preferred; ASCII fallback for dense multi-branch layouts — see §7.3)
 - Properties: shape-preserving, complexity, parallelizability
 - Application: code reference to the full class
 
@@ -191,7 +197,7 @@ Some sections follow different formats. Recognize and apply these:
 - Keep these concise — they demonstrate generality, not dive deep
 
 **c) Training Strategy Section** (e.g., "MESA")
-- Definition + How it works (ASCII diagram showing student/teacher flow)
+- Definition + How it works (Mermaid `flowchart LR` preferred; ASCII fallback for dense parallel paths — see §7.4)
 - Properties: overhead, improvement magnitude
 - Application: config values + code locations
 
@@ -253,34 +259,149 @@ against existing work, and the note should capture this positioning clearly.
 
 ## 7. Visual Elements
 
+### 7.0 Mermaid Conventions
+
+Mermaid is the **default** rendering language for graph-style diagrams in this
+skill — Big Picture (§7.1), Concept Dependency Graph (§7.2), Architecture
+Diagrams (§7.3), Training Flow Diagrams (§7.4). Rules inherited from the
+textbook-to-note skill keep diagrams readable across Obsidian, VSCode, GitHub,
+and claude.ai:
+
+- **Standard relation labels (6 only)** — do not invent new ones:
+
+  | Label | Meaning | Example |
+  |---|---|---|
+  | `prerequisite` | A must be understood before B | inner product → Fourier series |
+  | `generalizes` | A subsumes B | Transformer generalizes linear attention |
+  | `specializes` | A is B with added constraints | ViT is a specialized Transformer |
+  | `is-a` | Definitional / property relation | Parseval is-a FT property |
+  | `applies-to` | A is used for B | FFT applies-to heat equation |
+  | `dual-to` | Bijective / adjoint pair (use dotted `-.->`) | time ↔ frequency |
+
+- **Node cap ≤ 12 per diagram**. Exceed → split into `subgraph` blocks. For
+  the Concept Dependency Graph (§7.2) covering 15–25 concepts this is always
+  required.
+- **Labels are plain text only**. No LaTeX (`$...$`), no Unicode math glyphs
+  (`∑`, `α`, `ψ`, `²`, `→`). Spell them out: write
+  `"sum of f_j times exp(-i 2 pi jk/n)"` instead of `$\sum f_j e^{-i 2\pi jk/n}$`.
+  Mermaid renderers disagree on math rendering, and LaTeX inside node text
+  frequently breaks the parser entirely.
+- **Cross-links use dotted arrows `-.->`**. These surface Novak-style "insight"
+  connections between otherwise separate branches — a key signal that the
+  graph is more than a tree.
+- **Hierarchy**: general → specific. Use `graph TD` (top-down) for
+  dependency/narrative arcs and `graph LR` (left-right) for pipelines and
+  training flows.
+
 ### 7.1 Big Picture (§0)
-- ASCII art showing the paper's high-level story.
-- Use box-drawing characters: `┌ ┐ └ ┘ │ ─ ├ ┤ ┬ ┴ ┼ ▼ ▲ ◄ ►`
-- Show: problem → approaches → this paper's solution → applications.
 
-```
-Example (from ViT³ note):
-                         Vision Transformers
-                               |
-                    "O(N²) is too expensive"
-                               |
-               ┌───────────────┼───────────────┐
-               ▼               ▼               ▼
-        Linear Attention    Mamba (SSM)    Test-Time Training
-               │                               │
-               └───────────────┼───────────────┘
-                               ▼
-                    6 Practical Insights → ViT³ Model
-```
+Shows the paper's high-level story arc: problem → prior approaches → this
+paper's solution → applications. Default: Mermaid `graph TD`.
 
-### 7.2 Concept Dependency Graph
-- ASCII art showing how **all** concepts in the note connect.
-- Use arrows `──→` to show dependency direction.
-- Group related concepts vertically.
-- The graph should be readable as a "table of contents with relationships."
+Example (ViT³ narrative arc):
+
+````markdown
+```mermaid
+graph TD
+  Problem["Vision Transformers: O(N^2) attention is too expensive"]
+  LinAttn["Linear Attention"]
+  Mamba["Mamba (SSM)"]
+  TTT["Test-Time Training"]
+  Insights["6 practical insights on inner loop"]
+  Model["ViT-cubed Model"]
+  Apps["detection / segmentation / classification"]
+
+  Problem -->|"prior art"| LinAttn
+  Problem -->|"prior art"| Mamba
+  Problem -->|"prior art"| TTT
+  LinAttn -.->|"motivates"| Insights
+  Mamba -.->|"motivates"| Insights
+  TTT -->|"generalizes"| Insights
+  Insights -->|"yields"| Model
+  Model -->|"applies-to"| Apps
+```
+````
+
+**ASCII fallback**: use only when the narrative requires overlapping annotations
+or timeline layout that Mermaid cannot express. State the reason inline
+(`<!-- ASCII used because ... -->`).
+
+### 7.2 Concept Dependency Graph (§K+4)
+
+Shows how **all** concepts in the note connect. Think of it as "a table of
+contents with relationships." Default: Mermaid `graph TD` with `subgraph`
+blocks (the 15–25 paper concepts always exceed the 12-node cap).
+
+Example:
+
+````markdown
+```mermaid
+graph TD
+  subgraph "Foundations"
+    LA["Linear Attention"]
+    SSM["State Space Models"]
+    TTT["Test-Time Training"]
+  end
+  subgraph "Paper core"
+    InnerLoss["Inner Loss"]
+    InnerBatch["Inner Batch and Epochs"]
+    InnerLR["Inner Learning Rate"]
+    InnerModel["Inner Model Family"]
+  end
+  subgraph "Architecture"
+    Block["TTT Block"]
+    Variants["Model Variants T / S / B"]
+  end
+  subgraph "Training"
+    MESA["MESA Distillation"]
+  end
+
+  LA -->|"generalizes"| TTT
+  SSM -->|"generalizes"| TTT
+  TTT -->|"prerequisite"| InnerLoss
+  InnerLoss --> Block
+  InnerBatch --> Block
+  InnerLR --> Block
+  InnerModel --> Block
+  Block -->|"specializes"| Variants
+  MESA -.->|"regularizes"| Variants
+```
+````
+
+Every concept section (§1..K) should appear as a node, and every bidirectional
+Link in the Links facets should appear as an arrow (the graph is the visual
+audit for link completeness).
 
 ### 7.3 Architecture Diagrams
-- For model architectures, use vertical flow diagrams inside the Definition subsection:
+
+For model architectures, **Mermaid `flowchart TD` or `flowchart LR` is preferred**
+when the graph has ≤ 12 nodes and ≤ 3 branching paths. For denser layouts —
+many parallel branches, multiple skip connections, multi-head fan-out, or tight
+column alignment requirements — **fall back to ASCII** (Mermaid auto-layout
+typically clutters these cases).
+
+**Mermaid example** (simple 2-branch TTT-like block):
+
+````markdown
+```mermaid
+flowchart TD
+  X["Input x"]
+  B1["Branch 1: SwiGLU -> Inner train -> Inner infer -> x1"]
+  B2["Branch 2: DWConv -> Inner train -> Inner infer -> x2"]
+  Cat["Concat [x1, x2]"]
+  Proj["Projection"]
+  Out["Output"]
+
+  X --> B1
+  X --> B2
+  B1 --> Cat
+  B2 --> Cat
+  Cat --> Proj --> Out
+```
+````
+
+**ASCII fallback example** (when branching/annotations are too dense):
+
 ```
 Input x
   │
@@ -295,19 +416,41 @@ Input x
   └──→ Concat [x1, x2] → Proj → Output
 ```
 
+**Choose Mermaid when**: simple data flow, labeled edges matter, < 12 nodes.
+**Choose ASCII when**: > 12 nodes, multiple skip connections crossing each
+other, or tight visual alignment across branches is needed.
+
 ### 7.4 Training Flow Diagrams
-- For training strategies, show the data flow between components:
+
+For training strategies (distillation, EMA, student-teacher), **Mermaid
+`flowchart LR` is preferred**. Put the loss / update equation in a Markdown
+block **below** the diagram, not inside node labels (Mermaid's LaTeX support
+is inconsistent across renderers).
+
+**Mermaid example** (MESA-style student-teacher):
+
+````markdown
+```mermaid
+flowchart LR
+  S["Student model (theta_model)"]
+  T["Teacher model (theta_ema)"]
+  Ls["logits_s"]
+  Lt["logits_t"]
+  Loss["Loss combiner"]
+
+  S -->|"EMA update"| T
+  S --> Ls
+  T --> Lt
+  Ls --> Loss
+  Lt --> Loss
 ```
-Student (model)            Teacher (EMA model)
-┌──────────────┐          ┌──────────────────┐
-│  θ_model     │──update──▶ θ_ema            │
-└──────┬───────┘          └────────┬──────────┘
-       │                           │
-   logits_s                    logits_t
-       │                           │
-       ▼                           ▼
-L = (1-r)·CE(logits_s, label) + r·KL(logits_s, logits_t)
-```
+````
+
+Companion equation (outside the diagram):
+$$L = (1 - r)\,\mathrm{CE}(\mathrm{logits}_s, \text{label}) + r\,\mathrm{KL}(\mathrm{logits}_s, \mathrm{logits}_t)$$
+
+**ASCII fallback** applies under the same criteria as §7.3 (many parallel
+paths, dense annotations, or tight alignment needs).
 
 ---
 
@@ -426,7 +569,140 @@ The bad version hides behind abstract nouns and filler adjectives.
 
 ## 13. Process: How to Build the Note
 
+### Phase 0: PDF → Markdown Extraction (only if input is a PDF)
+
+If the input is a PDF rather than pre-extracted Markdown, run this phase first.
+The extracted Markdown is saved as `<paper-slug>.md` in the working directory
+and **kept permanently** — LLMs parse Markdown more reliably than PDF, so the
+archive is reused for Phases 1–6 and for any future re-reading of the paper.
+
+`<paper-slug>` = the PDF stem with spaces → `_`, special characters stripped,
+lowercased. Example: `ViT-cubed_Bai_2025.pdf` → `vit_cubed_bai_2025`.
+
+**Output layout** (relative to the working directory):
+```
+<paper-slug>.md            ← the permanent verbatim archive (Phase 1 input)
+figs/<paper-slug>/         ← extracted and recropped figures at 300 DPI
+    figure_1.jpg
+    figure_2.jpg
+    ...
+```
+
+The study note produced by Phases 1–6 is a **separate file** (e.g.,
+`study_note.md` or user-chosen name); the Phase 0 archive is not overwritten.
+
+#### Step 0.1: Environment (conda + MinerU + PyMuPDF)
+
+Detect OS, activate the `ClaudeCode` conda environment (create with Python 3.11
+if missing), and install `mineru[all] pymupdf pillow` via `uv pip install -U`.
+First run downloads MinerU model weights (~several GB); subsequent runs are
+offline.
+
+```bash
+OS_TYPE="$(uname -s 2>/dev/null || echo Windows)"
+case "$OS_TYPE" in
+    Linux*|Darwin*)
+        CONDA_ACTIVATE="source $(conda info --base)/etc/profile.d/conda.sh && conda activate"
+        ;;
+    *) CONDA_ACTIVATE="conda activate" ;;
+esac
+if ! conda env list | grep -q "ClaudeCode"; then
+    conda create -n ClaudeCode python=3.11 -y
+fi
+$CONDA_ACTIVATE ClaudeCode && uv pip install -U "mineru[all]" pymupdf pillow -q
+```
+
+#### Step 0.2: MinerU Extraction
+
+```bash
+WORKDIR="$(mktemp -d -t paper_to_note_XXXXXX)"
+$CONDA_ACTIVATE ClaudeCode && \
+  mineru -p "<pdf-path>" -o "$WORKDIR/mineru" -b pipeline
+```
+
+- No `--page-ranges` argument: the paper is processed whole.
+- Outputs `${WORKDIR}/mineru/<pdf-stem>/auto/<pdf-stem>.md` (main markdown),
+  `_content_list.json` (flat reading-order list with bbox), and `images/*.jpg`.
+
+#### Step 0.3: Figure Recrop (PyMuPDF caption-cluster)
+
+MinerU occasionally misses subplot figures or crops only one panel of a
+multi-panel layout. Re-crop using caption-based cluster expansion.
+
+- **Caption regex**: `^\s*Figure\s+(\d+):` (flat numbering; no chapter prefix).
+- **Algorithm**: for each page containing a "Figure N:" caption, seed a
+  bounding-box cluster from the caption and expand upward. Include drawings,
+  images, and short text blocks within `GAP_TOL = 20pt`. Reject expansion steps
+  that would cross a **body-text barrier** (block with length ≥ 200 chars AND
+  ≥ 3 lines AND width > 300pt AND avg line length > 45 chars) or the
+  running-header clip.
+- **Parameters**: `DPI = 300`, `PADDING = 4pt`, header clip ≥ 78pt.
+- **Output**: `figs/<paper-slug>/figure_<N>.jpg`.
+
+When auto-crop fails on unusual layouts, fall back to manual bbox:
+
+```python
+import fitz
+clip = fitz.Rect(x0, y0, x1, y1)
+pix = doc[pidx].get_pixmap(matrix=fitz.Matrix(300/72, 300/72), clip=clip, alpha=False)
+pix.save(f"figs/<paper-slug>/figure_{N}.jpg")
+```
+
+Record metadata in `${WORKDIR}/figures.json` for the assembly step:
+```json
+[{"number": "1", "caption": "...", "pdf_page": 3,
+  "bbox": [x0, y0, x1, y1], "path": "figs/<paper-slug>/figure_1.jpg"}]
+```
+
+#### Step 0.4: Reference Section Parsing
+
+Papers carry their own References at the end — no shared bibliography cache.
+
+1. Locate the "References" / "Bibliography" heading in the trailing pages via
+   `page.get_text("text")`.
+2. Parse entries with a regex appropriate to the citation style:
+   - **Numeric** (`[N]` style): `^\[(\d+)\]\s+(.+?)(?=^\[\d+\]|\Z)` (multiline).
+   - **Author-year**: `^([A-Z][^()]+\(\d{4}\))\s+(.+?)(?=^[A-Z]|\Z)`.
+3. Save to `${WORKDIR}/refs.json` keyed by citation number or short author-year
+   label.
+
+#### Step 0.5: Claude Assembly
+
+Read MinerU's raw `<pdf-stem>.md` and `_content_list.json`. Produce
+`<paper-slug>.md` with the following rules:
+
+1. **Preserve prose verbatim**. No paraphrase at this stage — this file is a
+   faithful archive. Interpretation happens in Phases 1–6.
+2. **Preserve equations** with `$$...\tag{Eq.N}$$` using the paper's own
+   numbering. Keep `\underbrace`, `\overbrace`, and piecewise `\begin{cases}`
+   constructs as-is.
+3. **Preserve code listings** in fenced blocks with language tags
+   (```python, ```matlab, etc.).
+4. **Preserve tables** by converting MinerU's HTML to Markdown; keep as HTML
+   when the table contains heavy math.
+5. **Filter noise** via regex:
+   - Running headers (paper title, author line, venue name) on first line of
+     each page.
+   - Standalone page numbers (`^\d{1,3}\s*$`).
+   - arXiv ID / DOI footer strips.
+6. **Insert figures at first body reference**:
+   ```markdown
+   ![Figure N|600](figs/<paper-slug>/figure_N.jpg)
+   > **Figure N** <original caption verbatim>
+   > *(Source: <first author> et al., <year>, arXiv:<id-if-available>)*
+   ```
+7. **Append `## References`** from `refs.json` at the end, one entry per line:
+   `- **[N]** <entry text>`.
+8. Delete `$WORKDIR` after the archive is written.
+
+After Phase 0 you have `<paper-slug>.md` and `figs/<paper-slug>/`.
+Proceed to Phase 1 using `<paper-slug>.md` as input.
+
 ### Phase 1: Read and Inventory (paper → concept list)
+
+> If you started from PDF, the input for this phase is the `<paper-slug>.md`
+> archive produced by Phase 0, not the PDF itself.
+
 1. Read the paper end-to-end. Do not write anything yet.
 2. List every distinct concept. A "concept" = something that has its own definition
    and properties. Typical count: 10–20 for a methods paper.
@@ -444,7 +720,7 @@ Remarks: 1–6
 ```
 
 ### Phase 2: Build the Skeleton
-1. Create §0 Big Picture with ASCII art.
+1. Create §0 Big Picture as a Mermaid diagram (see §7.1).
 2. Order concepts by dependency (foundations first).
 3. Create empty sections with the 4-facet headers.
 4. Decide grouping: which concepts become sub-sections of a parent.
@@ -461,7 +737,7 @@ Remarks: 1–6
 
 ### Phase 4: Add Meta-Sections
 1. Write the **Prior Art Comparison** (§6 structure above).
-2. Create the **Concept Dependency Graph** (ASCII art).
+2. Create the **Concept Dependency Graph** as a Mermaid diagram with `subgraph` blocks (see §7.2).
 3. Create the **Key Equations** table.
 4. Create the **Reference Map** (citations grouped by topic).
 5. Create the **Quick Reference Card** (insights summary table).
@@ -476,9 +752,10 @@ This is the most important phase. Without it, gaps accumulate silently.
    Include all model scales (Tiny/Small/Base), not just one.
 3. **Remark/Insight check**: every numbered insight or remark should appear,
    either as a quoted block or integrated into Properties.
-4. **Figure check**: key figures should be described or converted to ASCII art.
-   Note: bar charts and line plots can be described in words; architecture diagrams
-   should be converted to ASCII.
+4. **Figure check**: key figures from the paper should be described in prose
+   or redrawn as Mermaid diagrams (ASCII fallback permitted for dense
+   architectures per §7.3). Bar charts and line plots can be described in
+   words; architecture diagrams should be redrawn (Mermaid preferred).
 5. **Cross-reference check**: for every link A→B, verify B→A exists.
 6. **Language consistency**: scan for mixed languages, LLM filler words,
    inconsistent terminology.
@@ -497,6 +774,21 @@ The note is done when the Phase 5 checklist passes cleanly.
 ## 14. Coverage Verification Method
 
 When verifying that a study note covers the full paper, use this systematic approach:
+
+### Step 0: Verify Phase 0 Archive (when started from PDF)
+Before inventorying concepts, confirm the `<paper-slug>.md` archive faithfully
+represents the source PDF:
+- **Equation count**: grep for `\\tag{` and compare against the PDF's equation
+  numbering. Missing tags usually mean MinerU dropped an equation or merged it.
+- **Figure count**: `ls figs/<paper-slug>/ | wc -l` should match the number of
+  captions in the PDF.
+- **Reference count**: entries under `## References` should cover every `[N]`
+  cited in the body. Use a quick set-diff to spot gaps.
+- **Noise scan**: grep for running-header patterns, page-number-only lines,
+  and arXiv/DOI footer strings. Zero hits expected.
+
+If any of these fail, fix the Phase 0 output before starting Phase 1 — the
+study note inherits every defect of the archive.
 
 ### Step 1: Build a Source Inventory
 From the paper (PDF or markdown), list:
@@ -561,7 +853,15 @@ If no code repository is available:
 
 Before considering the note complete, verify:
 
-- [ ] §0 Big Picture exists with ASCII art
+**Phase 0 archive (only if started from a PDF)**
+- [ ] `<paper-slug>.md` archive exists and is prose-verbatim against the PDF
+- [ ] `figs/<paper-slug>/` contains one JPG per paper figure at 300 DPI
+- [ ] Every `\tag{Eq.N}` in the archive matches the PDF's equation numbering
+- [ ] `## References` in the archive covers every `[N]` cited in the body
+- [ ] Noise filtered: zero running headers, standalone page numbers, or arXiv/DOI footer lines
+
+**Study note (produced by Phases 1–6)**
+- [ ] §0 Big Picture is a Mermaid diagram (ASCII fallback only when Mermaid cannot express the arc — reason noted inline)
 - [ ] Every concept has all 4 facets (Definition, Properties, Application, Links)
 - [ ] All paper equations are included with correct numbering
 - [ ] Derivations show step-by-step reasoning
@@ -570,7 +870,9 @@ Before considering the note complete, verify:
 - [ ] Cross-references are bidirectional
 - [ ] Prior Art section compares approaches with specific limitations
 - [ ] Quick Reference Card summarizes key insights
-- [ ] Concept Dependency Graph covers all concepts
+- [ ] Concept Dependency Graph is a Mermaid diagram with `subgraph` blocks and covers every concept section; every Links arrow appears as a graph edge
+- [ ] Mermaid conventions (§7.0) followed: ≤ 12 nodes per graph/subgraph, 6 standard relation labels only, plain-text labels (no LaTeX / Unicode math glyphs), cross-links as `-.->`
+- [ ] Architecture & Training Flow diagrams use Mermaid when ≤ 12 nodes and ≤ 3 branches; ASCII fallback only for dense layouts
 - [ ] Key Equations summary table is complete
 - [ ] Reference Map groups all citations by topic
 - [ ] Language is consistent throughout (no mixed languages, no LLM filler)
